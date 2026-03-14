@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Статус стримов Twitch</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #f0f0f0;
+            margin-bottom: 40px;
+            font-weight: 400;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+        }
+
+        .container {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* Карточка-кнопка */
+        .streamer-card {
+            text-decoration: none;
+            width: 280px;
+            background: #2a2f4f;
+            border-radius: 28px;
+            padding: 24px 16px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            opacity: 0.65; /* тусклое состояние по умолчанию (offline) */
+            cursor: pointer;
+            color: #ffffff; /* белый цвет для всего текста внутри */
+        }
+
+        /* Состояние online — яркое, с фирменным цветом Twitch */
+        .streamer-card.online {
+            opacity: 1;
+            background: #9147ff; /* Twitch purple */
+            box-shadow: 0 15px 25px -8px #9147ff66, 0 0 0 2px #bf94ff inset;
+            border-color: #bf94ff;
+        }
+
+        .streamer-card.online:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 25px 30px -8px #9147ffb3;
+        }
+
+        .streamer-card:not(.online):hover {
+            background: #3a4065;
+            opacity: 0.8;
+            transform: scale(1.01);
+        }
+
+        /* Аватарка */
+        .avatar {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid currentColor;
+            margin-bottom: 15px;
+            background: #1e1e2f;
+            transition: border-color 0.2s;
+        }
+
+        .online .avatar {
+            border-color: #ffffff;
+            box-shadow: 0 0 0 3px #ffea9f;
+        }
+
+        /* Никнейм */
+        .username {
+            font-size: 1.7rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            text-shadow: 0 2px 3px rgba(0,0,0,0.3);
+            word-break: break-word;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* Блок со зрителями */
+        .viewers {
+            font-size: 1.5rem;
+            font-weight: 500;
+            padding: 10px 24px;
+            border-radius: 50px;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(4px);
+            color: white;
+            min-width: 100px;
+            text-align: center;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .online .viewers {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+        }
+
+        /* Заглушка ошибки/загрузки */
+        .error-card {
+            background: #3d2b2b;
+            border: 2px dashed #ff7b7b;
+        }
+
+        .loading {
+            color: white;
+            font-size: 1.4rem;
+            text-align: center;
+            padding: 40px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 40px;
+            backdrop-filter: blur(5px);
+        }
+
+        /* Подпись-ссылка */
+        .footer-signature {
+            margin-top: 40px;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.9rem;
+            text-align: center;
+            letter-spacing: 0.5px;
+            font-weight: 300;
+            transition: color 0.2s;
+            text-decoration: none;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .footer-signature:hover {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Псевдоэлемент для смены текста при наведении */
+        .footer-signature::after {
+            content: attr(data-text);
+        }
+
+        .footer-signature:hover::after {
+            content: attr(data-hover);
+        }
+
+        @media (max-width: 650px) {
+            .container {
+                gap: 20px;
+            }
+            .streamer-card {
+                width: 100%;
+                max-width: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 Стримерочки 🎮</h1>
+    <div class="container" id="container">
+        <div class="loading">Загрузка данных...</div>
+    </div>
+    <!-- Ссылка на Telegram с динамическим текстом -->
+    <a class="footer-signature" 
+       href="https://t.me/MrHOMEP_9" 
+       target="_blank" 
+       rel="noopener"
+       data-text="By Девяточка"
+       data-hover="Подпишись на его тгк!"></a>
+
+    <script>
+        (function() {
+            // Три стримера: два исходных + aeloria31
+            const STREAMERS = ['homep9', 'mshlosha', 'aeloria31'];
+            const container = document.getElementById('container');
+
+            // —————— Вспомогательные функции ——————
+            async function fetchUserData(login) {
+                try {
+                    const url = `https://api.ivr.fi/v2/twitch/user?login=${login}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    const data = await response.json();
+                    // API возвращает массив пользователей (обычно один элемент)
+                    if (Array.isArray(data) && data.length > 0) {
+                        return data[0];
+                    } else {
+                        throw new Error('Пользователь не найден');
+                    }
+                } catch (err) {
+                    console.warn(`Ошибка при запросе ${login}:`, err);
+                    return null; // признак ошибки
+                }
+            }
+
+            // Создание DOM-элемента карточки на основе данных пользователя
+            function createCard(user) {
+                // Надёжная проверка на онлайн: если есть stream и это объект (не null и не undefined)
+                const isOnline = user && user.stream && typeof user.stream === 'object';
+                const login = user?.login || 'unknown';
+                const displayName = user?.displayName || login;
+                // Аватар: если нет лого, ставим заглушку
+                let avatarUrl = user?.logo;
+                if (!avatarUrl || avatarUrl === '') {
+                    // Заглушка с первой буквой ника (через сервис)
+                    avatarUrl = `https://placekitten.com/110/110?image=${Math.floor(Math.random() * 10)}`; 
+                }
+
+                // Количество зрителей (если онлайн и поле viewers существует)
+                let viewersText = '-';
+                if (isOnline && user.stream.viewers !== undefined) {
+                    viewersText = `👁️ ${user.stream.viewers}`;
+                } else if (isOnline) {
+                    // Если онлайн, но нет данных о зрителях, покажем просто "online"
+                    viewersText = '🔴 ONLINE';
+                }
+
+                // Контейнер — ссылка на канал
+                const card = document.createElement('a');
+                card.href = `https://www.twitch.tv/${login}`;
+                card.target = '_blank';
+                card.className = `streamer-card ${isOnline ? 'online' : ''}`;
+
+                // Аватар
+                const avatar = document.createElement('img');
+                avatar.src = avatarUrl;
+                avatar.alt = displayName;
+                avatar.className = 'avatar';
+                avatar.loading = 'lazy';
+                avatar.onerror = function() {
+                    // Если картинка не загрузилась, ставим заглушку-силуэт
+                    this.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 100 100\'%3E%3Ccircle fill=\'%23333\' cx=\'50\' cy=\'50\' r=\'50\'/%3E%3Ctext fill=\'%23aaa\' x=\'50\' y=\'67\' font-size=\'40\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3E%3F%3C/text%3E%3C/svg%3E';
+                };
+
+                // Никнейм
+                const usernameDiv = document.createElement('div');
+                usernameDiv.className = 'username';
+                usernameDiv.textContent = displayName;
+
+                // Блок зрителей/статуса
+                const viewersDiv = document.createElement('div');
+                viewersDiv.className = 'viewers';
+                viewersDiv.textContent = viewersText;
+
+                card.appendChild(avatar);
+                card.appendChild(usernameDiv);
+                card.appendChild(viewersDiv);
+
+                return card;
+            }
+
+            // Создание карточки для ошибочной ситуации (не удалось получить данные)
+            function createErrorCard(login) {
+                const card = document.createElement('a');
+                card.href = `https://www.twitch.tv/${login}`;
+                card.target = '_blank';
+                card.className = 'streamer-card error-card';
+                card.style.opacity = '0.5';
+
+                const avatar = document.createElement('img');
+                avatar.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 100 100\'%3E%3Ccircle fill=\'%23555\' cx=\'50\' cy=\'50\' r=\'50\'/%3E%3Ctext fill=\'%23aaa\' x=\'50\' y=\'67\' font-size=\'40\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3E⚠️%3C/text%3E%3C/svg%3E';
+                avatar.alt = login;
+                avatar.className = 'avatar';
+
+                const usernameDiv = document.createElement('div');
+                usernameDiv.className = 'username';
+                usernameDiv.textContent = login;
+
+                const viewersDiv = document.createElement('div');
+                viewersDiv.className = 'viewers';
+                viewersDiv.textContent = '?';
+
+                card.appendChild(avatar);
+                card.appendChild(usernameDiv);
+                card.appendChild(viewersDiv);
+
+                return card;
+            }
+
+            // Отрисовка всех карточек
+            function renderCards(usersArray) {
+                container.innerHTML = ''; // очищаем
+
+                usersArray.forEach((user, idx) => {
+                    if (user && typeof user === 'object' && user.login) {
+                        // Успешно получили данные
+                        container.appendChild(createCard(user));
+                    } else {
+                        // Неудача — показываем заглушку с логином из исходного списка
+                        container.appendChild(createErrorCard(STREAMERS[idx]));
+                    }
+                });
+            }
+
+            // Загрузка данных для всех стримеров и обновление UI
+            async function updateAllStreamers() {
+                try {
+                    // Делаем запросы параллельно
+                    const promises = STREAMERS.map(login => fetchUserData(login));
+                    const results = await Promise.all(promises);
+                    renderCards(results);
+                } catch (globalError) {
+                    console.error('Глобальная ошибка обновления:', globalError);
+                    // В крайнем случае показываем заглушки для трёх
+                    renderCards([null, null, null]);
+                }
+            }
+
+            // Первое обновление сразу
+            updateAllStreamers();
+
+            // Плановое обновление каждые 60 секунд (60000 мс)
+            setInterval(updateAllStreamers, 60000);
+        })();
+    </script>
+</body>
+</html>
