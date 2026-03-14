@@ -21,7 +21,6 @@
             padding: 20px;
             position: relative;
             overflow-x: hidden;
-            /* Возвращаем исходный тёмный градиент (как в самом начале) */
             background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
             user-select: none;
             -webkit-user-drag: none;
@@ -59,7 +58,7 @@
             flex-wrap: wrap;
             justify-content: center;
             align-items: center;
-            max-width: 800px;
+            max-width: 1200px;
             width: 100%;
         }
 
@@ -213,8 +212,9 @@
 
     <script>
         (function() {
-            // --- Часть 1: Twitch стримеры ---
-            const STREAMERS = ['homep9', 'mshlosha'];
+            // --- Часть 1: Twitch стримеры с обновлением раз в 10 секунд ---
+            // Добавлен третий стример CheD__TV
+            const STREAMERS = ['homep9', 'mshlosha', 'CheD__TV'];
             const container = document.getElementById('container');
 
             async function fetchUserData(login) {
@@ -321,14 +321,14 @@
                     renderCards(results);
                 } catch (globalError) {
                     console.error('Глобальная ошибка обновления:', globalError);
-                    renderCards([null, null]);
+                    renderCards([null, null, null]);
                 }
             }
 
             updateAllStreamers();
-            setInterval(updateAllStreamers, 60000);
+            setInterval(updateAllStreamers, 10000);
 
-            // --- Часть 2: Canvas с падающими морковками и мишками ---
+            // --- Часть 2: Canvas с падающими морковками, мишками и черепками ---
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -343,8 +343,9 @@
             resizeCanvas();
 
             const particles = [];
-            const TYPES = ['carrot', 'bear'];
-            const EMOJI = { carrot: '🥕', bear: '🧸' };
+            // Добавлен новый тип 'skull' с эмодзи 💀
+            const TYPES = ['carrot', 'bear', 'skull'];
+            const EMOJI = { carrot: '🥕', bear: '🧸', skull: '💀' };
 
             function createParticle() {
                 const size = 40 + Math.random() * 20;
@@ -370,9 +371,8 @@
                 }
             }, 150);
 
-            // Переменные для магнита с плавным затуханием
             let magnetActive = false;
-            let magnetIntensity = 0; // от 0 до 1, плавно изменяется
+            let magnetIntensity = 0;
             let mouseX = -1000, mouseY = -1000;
             const MAGNET_RADIUS = 150;
             const MAGNET_STRENGTH = 0.1;
@@ -398,7 +398,6 @@
 
             canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-            // Плавное изменение интенсивности
             function updateMagnetIntensity() {
                 const step = 0.02;
                 if (magnetActive && magnetIntensity < 1) {
@@ -420,7 +419,7 @@
                         const dy = mouseY - p.y;
                         const dist = Math.sqrt(dx*dx + dy*dy);
                         if (dist < MAGNET_RADIUS && dist > 0.1) {
-                            const force = MAGNET_STRENGTH * (1 - dist / MAGNET_RADIUS) * magnetIntensity; // сила зависит от интенсивности
+                            const force = MAGNET_STRENGTH * (1 - dist / MAGNET_RADIUS) * magnetIntensity;
                             p.vx += dx * force;
                             p.vy += dy * force;
                         }
@@ -445,20 +444,15 @@
                 }
             }
 
-            // Рисование
             function draw() {
                 ctx.clearRect(0, 0, width, height);
 
-                // Обновляем интенсивность магнита
                 updateMagnetIntensity();
 
-                // Рисуем эффект магнита (старый телевизор) с текущей интенсивностью
                 if (magnetIntensity > 0.01 && mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
                     ctx.save();
 
-                    // Радиальный градиент для эффекта "пузатого телевизора" (более прозрачный)
                     const gradient = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, MAGNET_RADIUS);
-                    // Альфа-канал умножаем на magnetIntensity, чтобы плавно появлялось
                     gradient.addColorStop(0, `rgba(220, 240, 255, ${0.3 * magnetIntensity})`);   
                     gradient.addColorStop(0.2, `rgba(160, 200, 255, ${0.2 * magnetIntensity})`);
                     gradient.addColorStop(0.4, `rgba(120, 120, 240, ${0.15 * magnetIntensity})`);
@@ -471,7 +465,6 @@
                     ctx.fillStyle = gradient;
                     ctx.fill();
 
-                    // Добавляем мерцающие "помехи"
                     for (let i = 0; i < 8; i++) {
                         const angle = (Date.now() * 0.002 + i * 1.5) % (Math.PI * 2);
                         const dist = MAGNET_RADIUS * (0.6 + 0.3 * Math.sin(Date.now() * 0.005 + i));
@@ -486,7 +479,6 @@
                     ctx.restore();
                 }
 
-                // Рисуем частицы поверх эффекта
                 for (let p of particles) {
                     ctx.save();
                     ctx.translate(p.x, p.y);
