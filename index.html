@@ -21,6 +21,7 @@
             padding: 20px;
             position: relative;
             overflow-x: hidden;
+            /* Возвращаем исходный тёмный градиент (как в самом начале) */
             background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
             user-select: none;
             -webkit-user-drag: none;
@@ -328,7 +329,6 @@
             setInterval(updateAllStreamers, 60000);
 
             // --- Часть 2: Canvas с падающими морковками и мишками ---
-            // Непрерывное появление сверху, исчезновение снизу
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -342,12 +342,10 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            // Частицы
             const particles = [];
             const TYPES = ['carrot', 'bear'];
             const EMOJI = { carrot: '🥕', bear: '🧸' };
 
-            // Функция создания новой частицы сверху
             function createParticle() {
                 const size = 40 + Math.random() * 20;
                 return {
@@ -362,20 +360,19 @@
                 };
             }
 
-            // Начальное заполнение
             for (let i = 0; i < 20; i++) {
                 particles.push(createParticle());
             }
 
-            // Периодическое добавление новых частиц (чаще: каждые 150 мс)
             setInterval(() => {
-                if (particles.length < 80) { // увеличен лимит
+                if (particles.length < 80) {
                     particles.push(createParticle());
                 }
             }, 150);
 
-            // Переменные для магнита
+            // Переменные для магнита с плавным затуханием
             let magnetActive = false;
+            let magnetIntensity = 0; // от 0 до 1, плавно изменяется
             let mouseX = -1000, mouseY = -1000;
             const MAGNET_RADIUS = 150;
             const MAGNET_STRENGTH = 0.1;
@@ -401,7 +398,16 @@
 
             canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-            // Физика
+            // Плавное изменение интенсивности
+            function updateMagnetIntensity() {
+                const step = 0.02;
+                if (magnetActive && magnetIntensity < 1) {
+                    magnetIntensity = Math.min(1, magnetIntensity + step);
+                } else if (!magnetActive && magnetIntensity > 0) {
+                    magnetIntensity = Math.max(0, magnetIntensity - step);
+                }
+            }
+
             const gravity = 0.02;
             const maxSpeed = 4;
 
@@ -414,7 +420,7 @@
                         const dy = mouseY - p.y;
                         const dist = Math.sqrt(dx*dx + dy*dy);
                         if (dist < MAGNET_RADIUS && dist > 0.1) {
-                            const force = MAGNET_STRENGTH * (1 - dist / MAGNET_RADIUS);
+                            const force = MAGNET_STRENGTH * (1 - dist / MAGNET_RADIUS) * magnetIntensity; // сила зависит от интенсивности
                             p.vx += dx * force;
                             p.vy += dy * force;
                         }
@@ -439,9 +445,48 @@
                 }
             }
 
+            // Рисование
             function draw() {
                 ctx.clearRect(0, 0, width, height);
 
+                // Обновляем интенсивность магнита
+                updateMagnetIntensity();
+
+                // Рисуем эффект магнита (старый телевизор) с текущей интенсивностью
+                if (magnetIntensity > 0.01 && mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
+                    ctx.save();
+
+                    // Радиальный градиент для эффекта "пузатого телевизора" (более прозрачный)
+                    const gradient = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, MAGNET_RADIUS);
+                    // Альфа-канал умножаем на magnetIntensity, чтобы плавно появлялось
+                    gradient.addColorStop(0, `rgba(220, 240, 255, ${0.3 * magnetIntensity})`);   
+                    gradient.addColorStop(0.2, `rgba(160, 200, 255, ${0.2 * magnetIntensity})`);
+                    gradient.addColorStop(0.4, `rgba(120, 120, 240, ${0.15 * magnetIntensity})`);
+                    gradient.addColorStop(0.6, `rgba(80, 60, 180, ${0.1 * magnetIntensity})`);
+                    gradient.addColorStop(0.8, `rgba(40, 20, 100, ${0.07 * magnetIntensity})`);
+                    gradient.addColorStop(1, `rgba(20, 5, 40, ${0.03 * magnetIntensity})`);
+
+                    ctx.beginPath();
+                    ctx.arc(mouseX, mouseY, MAGNET_RADIUS, 0, Math.PI * 2);
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+
+                    // Добавляем мерцающие "помехи"
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (Date.now() * 0.002 + i * 1.5) % (Math.PI * 2);
+                        const dist = MAGNET_RADIUS * (0.6 + 0.3 * Math.sin(Date.now() * 0.005 + i));
+                        const x = mouseX + Math.cos(angle) * dist;
+                        const y = mouseY + Math.sin(angle) * dist;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 2 + Math.sin(Date.now() * 0.01 + i) * 1, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(200, 220, 255, ${0.1 * magnetIntensity})`;
+                        ctx.fill();
+                    }
+
+                    ctx.restore();
+                }
+
+                // Рисуем частицы поверх эффекта
                 for (let p of particles) {
                     ctx.save();
                     ctx.translate(p.x, p.y);
