@@ -22,28 +22,26 @@
             position: relative;
             overflow-x: hidden;
             background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
-            user-select: none; /* отключаем выделение текста */
+            user-select: none;
             -webkit-user-drag: none;
         }
 
-        /* Canvas на заднем плане */
         #canvas {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none; /* события мыши не мешают контенту */
+            pointer-events: none;
             z-index: 1;
             user-select: none;
             -webkit-user-drag: none;
         }
 
-        /* Контент поверх canvas */
         h1, .container, .footer-signature {
             position: relative;
             z-index: 2;
-            pointer-events: auto; /* контент получает клики */
+            pointer-events: auto;
         }
 
         h1 {
@@ -64,7 +62,6 @@
             width: 100%;
         }
 
-        /* Карточка-кнопка */
         .streamer-card {
             text-decoration: none;
             width: 280px;
@@ -330,8 +327,8 @@
             updateAllStreamers();
             setInterval(updateAllStreamers, 60000);
 
-            // --- Часть 2: Canvas с падающими морковками и мишками (drag & drop + исчезновение внизу) ---
-            // --- ЗАМЕДЛЕНО: уменьшена гравитация и начальные скорости ---
+            // --- Часть 2: Canvas с падающими морковками и мишками ---
+            // Непрерывное появление сверху, исчезновение снизу
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -347,129 +344,101 @@
 
             // Частицы
             const particles = [];
-            const PARTICLE_COUNT = 25; // количество объектов
             const TYPES = ['carrot', 'bear'];
             const EMOJI = { carrot: '🥕', bear: '🧸' };
 
-            // Инициализация с замедленными скоростями
-            for (let i = 0; i < PARTICLE_COUNT; i++) {
-                particles.push({
+            // Функция создания новой частицы сверху
+            function createParticle() {
+                const size = 40 + Math.random() * 20;
+                return {
                     x: Math.random() * width,
-                    y: Math.random() * height,
-                    vx: (Math.random() - 0.5) * 0.5,        // медленнее по горизонтали
-                    vy: (Math.random() - 0.5) * 0.3 + 0.2,  // медленнее по вертикали (0.05..0.5)
+                    y: -size - Math.random() * 50,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: Math.random() * 0.5 + 0.3,
                     rotation: Math.random() * Math.PI * 2,
                     rotSpeed: (Math.random() - 0.5) * 0.02,
                     type: TYPES[Math.floor(Math.random() * TYPES.length)],
-                    size: 40 + Math.random() * 20,
-                });
+                    size: size,
+                };
             }
 
-            // Переменные для захвата
-            let draggedIndex = -1;          // индекс захваченной частицы, -1 если нет
-            let mouseX = -1000, mouseY = -1000; // координаты мыши относительно canvas
-
-            // Функция для определения, попадает ли мышь в частицу (по расстоянию до центра)
-            function hitTest(particle, mx, my) {
-                const radius = particle.size / 2; // приблизительный радиус
-                const dx = particle.x - mx;
-                const dy = particle.y - my;
-                return (dx * dx + dy * dy) < radius * radius;
+            // Начальное заполнение
+            for (let i = 0; i < 20; i++) {
+                particles.push(createParticle());
             }
 
-            // Обработчики на window (так как canvas pointer-events: none)
-            window.addEventListener('mousedown', (e) => {
-                // Отмена стандартного поведения (выделение, перетаскивание)
-                e.preventDefault();
-
-                // Ищем частицу под мышью (с конца, чтобы выше рисовались раньше — захват верхней)
-                for (let i = particles.length - 1; i >= 0; i--) {
-                    if (hitTest(particles[i], mouseX, mouseY)) {
-                        draggedIndex = i;
-                        // При захвате сразу перемещаем частицу в центр мыши и обнуляем скорости
-                        particles[i].x = mouseX;
-                        particles[i].y = mouseY;
-                        particles[i].vx = 0;
-                        particles[i].vy = 0;
-                        particles[i].rotSpeed = 0; // прекращаем вращение
-                        break;
-                    }
+            // Периодическое добавление новых частиц (чаще: каждые 150 мс)
+            setInterval(() => {
+                if (particles.length < 80) { // увеличен лимит
+                    particles.push(createParticle());
                 }
+            }, 150);
+
+            // Переменные для магнита
+            let magnetActive = false;
+            let mouseX = -1000, mouseY = -1000;
+            const MAGNET_RADIUS = 150;
+            const MAGNET_STRENGTH = 0.1;
+
+            window.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                magnetActive = true;
             });
 
             window.addEventListener('mousemove', (e) => {
-                // Обновляем координаты мыши (пересчёт относительно canvas)
                 const rect = canvas.getBoundingClientRect();
                 mouseX = e.clientX - rect.left;
                 mouseY = e.clientY - rect.top;
-
-                // Если есть захваченная частица, двигаем её за мышью и обнуляем скорости
-                if (draggedIndex !== -1) {
-                    e.preventDefault(); // предотвращаем выделение
-                    const p = particles[draggedIndex];
-                    p.x = mouseX;
-                    p.y = mouseY;
-                    p.vx = 0;
-                    p.vy = 0;
-                    p.rotSpeed = 0;
-                }
             });
 
             window.addEventListener('mouseup', () => {
-                draggedIndex = -1; // отпускаем захват
+                magnetActive = false;
             });
 
-            // Если мышь уходит за пределы окна, тоже отпускаем
             window.addEventListener('mouseleave', () => {
-                draggedIndex = -1;
+                magnetActive = false;
             });
 
-            // Предотвращаем контекстное меню на canvas (необязательно)
             canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-            // Физика (замедленная гравитация)
-            const gravity = 0.02; // было 0.05
+            // Физика
+            const gravity = 0.02;
+            const maxSpeed = 4;
 
             function updateParticles() {
-                for (let i = 0; i < particles.length; i++) {
+                for (let i = particles.length - 1; i >= 0; i--) {
                     const p = particles[i];
 
-                    // Если частица захвачена, не обновляем её физику (она уже перемещена в mousemove)
-                    if (i === draggedIndex) continue;
+                    if (magnetActive) {
+                        const dx = mouseX - p.x;
+                        const dy = mouseY - p.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < MAGNET_RADIUS && dist > 0.1) {
+                            const force = MAGNET_STRENGTH * (1 - dist / MAGNET_RADIUS);
+                            p.vx += dx * force;
+                            p.vy += dy * force;
+                        }
+                    }
 
-                    // Гравитация
                     p.vy += gravity;
-
-                    // Вращение
                     p.rotation += p.rotSpeed;
-
-                    // Движение
                     p.x += p.vx;
                     p.y += p.vy;
 
-                    // Отскок от стенок с потерей энергии (для реализма)
                     if (p.x < 0) { p.x = 0; p.vx *= -0.5; p.rotSpeed *= 0.9; }
                     if (p.x > width) { p.x = width; p.vx *= -0.5; p.rotSpeed *= 0.9; }
                     if (p.y < 0) { p.y = 0; p.vy *= -0.5; p.rotSpeed *= 0.9; }
 
-                    // Если упал вниз (ниже экрана) — перемещаем наверх (с замедленной скоростью)
                     if (p.y > height + p.size) {
-                        p.y = -p.size;
-                        p.x = Math.random() * width;
-                        p.vx = (Math.random() - 0.5) * 0.5;          // медленнее
-                        p.vy = Math.random() * 0.3 + 0.2;            // медленнее (0.2..0.5)
-                        p.rotation = Math.random() * Math.PI * 2;
-                        p.rotSpeed = (Math.random() - 0.5) * 0.02;
+                        particles.splice(i, 1);
+                        continue;
                     }
 
-                    // Ограничение скорости (чтобы не улетали слишком быстро)
-                    const maxSpeed = 3; // чуть снизили для плавности
                     if (Math.abs(p.vx) > maxSpeed) p.vx = Math.sign(p.vx) * maxSpeed;
                     if (Math.abs(p.vy) > maxSpeed) p.vy = Math.sign(p.vy) * maxSpeed;
                 }
             }
 
-            // Рисование
             function draw() {
                 ctx.clearRect(0, 0, width, height);
 
@@ -480,7 +449,7 @@
                     ctx.font = `${p.size}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "EmojiOne Color", sans-serif`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillStyle = '#ffffff'; // эмодзи цветные сами по себе
+                    ctx.fillStyle = '#ffffff';
                     ctx.fillText(EMOJI[p.type], 0, 0);
                     ctx.restore();
                 }
