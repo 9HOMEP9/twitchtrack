@@ -331,6 +331,7 @@
             setInterval(updateAllStreamers, 60000);
 
             // --- Часть 2: Canvas с падающими морковками и мишками (drag & drop + исчезновение внизу) ---
+            // --- ЗАМЕДЛЕНО: уменьшена гравитация и начальные скорости ---
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -350,13 +351,13 @@
             const TYPES = ['carrot', 'bear'];
             const EMOJI = { carrot: '🥕', bear: '🧸' };
 
-            // Инициализация
+            // Инициализация с замедленными скоростями
             for (let i = 0; i < PARTICLE_COUNT; i++) {
                 particles.push({
                     x: Math.random() * width,
                     y: Math.random() * height,
-                    vx: (Math.random() - 0.5) * 1,
-                    vy: (Math.random() - 0.5) * 1 + 0.5,
+                    vx: (Math.random() - 0.5) * 0.5,        // медленнее по горизонтали
+                    vy: (Math.random() - 0.5) * 0.3 + 0.2,  // медленнее по вертикали (0.05..0.5)
                     rotation: Math.random() * Math.PI * 2,
                     rotSpeed: (Math.random() - 0.5) * 0.02,
                     type: TYPES[Math.floor(Math.random() * TYPES.length)],
@@ -426,10 +427,10 @@
             // Предотвращаем контекстное меню на canvas (необязательно)
             canvas.addEventListener('contextmenu', (e) => e.preventDefault());
 
-            // Физика
-            function updateParticles() {
-                const gravity = 0.05;
+            // Физика (замедленная гравитация)
+            const gravity = 0.02; // было 0.05
 
+            function updateParticles() {
                 for (let i = 0; i < particles.length; i++) {
                     const p = particles[i];
 
@@ -451,18 +452,18 @@
                     if (p.x > width) { p.x = width; p.vx *= -0.5; p.rotSpeed *= 0.9; }
                     if (p.y < 0) { p.y = 0; p.vy *= -0.5; p.rotSpeed *= 0.9; }
 
-                    // Если упал вниз (ниже экрана) — перемещаем наверх
+                    // Если упал вниз (ниже экрана) — перемещаем наверх (с замедленной скоростью)
                     if (p.y > height + p.size) {
                         p.y = -p.size;
                         p.x = Math.random() * width;
-                        p.vx = (Math.random() - 0.5) * 1;
-                        p.vy = Math.random() * 1 + 0.5; // небольшая скорость вниз
+                        p.vx = (Math.random() - 0.5) * 0.5;          // медленнее
+                        p.vy = Math.random() * 0.3 + 0.2;            // медленнее (0.2..0.5)
                         p.rotation = Math.random() * Math.PI * 2;
                         p.rotSpeed = (Math.random() - 0.5) * 0.02;
                     }
 
                     // Ограничение скорости (чтобы не улетали слишком быстро)
-                    const maxSpeed = 5;
+                    const maxSpeed = 3; // чуть снизили для плавности
                     if (Math.abs(p.vx) > maxSpeed) p.vx = Math.sign(p.vx) * maxSpeed;
                     if (Math.abs(p.vy) > maxSpeed) p.vy = Math.sign(p.vy) * maxSpeed;
                 }
