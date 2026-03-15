@@ -212,7 +212,6 @@
 
     <script>
         (function() {
-            
             const STREAMERS = ['homep9', 'mshlosha', 'CheD__TV'];
             const container = document.getElementById('container');
 
@@ -310,7 +309,7 @@
 
             updateAllStreamers();
             setInterval(updateAllStreamers, 5000);
-            
+
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -324,12 +323,34 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
+            // Загрузка PNG изображений
+            const images = {
+                carrot: new Image(),
+                alien: new Image(),
+                skull: new Image()
+            };
+            images.carrot.src = 'carrot.png';
+            images.alien.src = 'alien.png';
+            images.skull.src = 'skull.png';
+
+            let imagesLoaded = 0;
+            function imageLoaded() {
+                imagesLoaded++;
+                if (imagesLoaded === 3) {
+                    // Все изображения загружены, можно начинать анимацию
+                    // Анимация уже запущена, но теперь изображения будут рисоваться
+                }
+            }
+            images.carrot.onload = imageLoaded;
+            images.alien.onload = imageLoaded;
+            images.skull.onload = imageLoaded;
+            // Если изображения не загрузятся, onerror можно не обрабатывать, просто ничего не нарисуется
+
             const particles = [];
             const TYPES = ['carrot', 'alien', 'skull'];
-            const EMOJI = { carrot: '🥕', alien: '👾', skull: '💀' };
 
             function createParticle() {
-                const size = 40 + Math.random() * 20;
+                const size = 40; // фиксированный размер, можно регулировать
                 return {
                     x: Math.random() * width,
                     y: -size - Math.random() * 50,
@@ -425,14 +446,22 @@
                 }
             }
 
-            function draw() {
+            let lastDrawTime = 0;
+            const FPS = 30;
+            const frameInterval = 1000 / FPS;
+
+            function draw(timestamp) {
+                requestAnimationFrame(draw);
+
+                if (timestamp - lastDrawTime < frameInterval) return;
+                lastDrawTime = timestamp;
+
                 ctx.clearRect(0, 0, width, height);
 
                 updateMagnetIntensity();
 
                 if (magnetIntensity > 0.01 && mouseX >= 0 && mouseX <= width && mouseY >= 0 && mouseY <= height) {
                     ctx.save();
-
                     const gradient = ctx.createRadialGradient(mouseX, mouseY, 0, mouseX, mouseY, MAGNET_RADIUS);
                     gradient.addColorStop(0, `rgba(220, 240, 255, ${0.3 * magnetIntensity})`);   
                     gradient.addColorStop(0.2, `rgba(160, 200, 255, ${0.2 * magnetIntensity})`);
@@ -440,40 +469,28 @@
                     gradient.addColorStop(0.6, `rgba(80, 60, 180, ${0.1 * magnetIntensity})`);
                     gradient.addColorStop(0.8, `rgba(40, 20, 100, ${0.07 * magnetIntensity})`);
                     gradient.addColorStop(1, `rgba(20, 5, 40, ${0.03 * magnetIntensity})`);
-
                     ctx.beginPath();
                     ctx.arc(mouseX, mouseY, MAGNET_RADIUS, 0, Math.PI * 2);
                     ctx.fillStyle = gradient;
                     ctx.fill();
-
-                    for (let i = 0; i < 8; i++) {
-                        const angle = (Date.now() * 0.002 + i * 1.5) % (Math.PI * 2);
-                        const dist = MAGNET_RADIUS * (0.6 + 0.3 * Math.sin(Date.now() * 0.005 + i));
-                        const x = mouseX + Math.cos(angle) * dist;
-                        const y = mouseY + Math.sin(angle) * dist;
-                        ctx.beginPath();
-                        ctx.arc(x, y, 2 + Math.sin(Date.now() * 0.01 + i) * 1, 0, Math.PI * 2);
-                        ctx.fillStyle = `rgba(200, 220, 255, ${0.1 * magnetIntensity})`;
-                        ctx.fill();
-                    }
-
                     ctx.restore();
                 }
 
-                for (let p of particles) {
-                    ctx.save();
-                    ctx.translate(p.x, p.y);
-                    ctx.rotate(p.rotation);
-                    ctx.font = `${p.size}px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "EmojiOne Color", sans-serif`;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText(EMOJI[p.type], 0, 0);
-                    ctx.restore();
+                // Рисуем частицы, если изображения загружены
+                if (imagesLoaded === 3) {
+                    for (let p of particles) {
+                        const img = images[p.type];
+                        if (img) {
+                            ctx.save();
+                            ctx.translate(p.x, p.y);
+                            ctx.rotate(p.rotation);
+                            ctx.drawImage(img, -p.size/2, -p.size/2, p.size, p.size);
+                            ctx.restore();
+                        }
+                    }
                 }
 
                 updateParticles();
-                requestAnimationFrame(draw);
             }
 
             draw();
