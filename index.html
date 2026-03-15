@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Малыши-стримерочки</title>
+    <title>Малыши-Стримерочки</title>
     <style>
         * {
             box-sizing: border-box;
@@ -74,7 +74,7 @@
             transition: all 0.3s cubic-bezier(0.2, 0.9, 0.3, 1);
             box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.5);
             border: 1px solid rgba(255, 255, 255, 0.05);
-            opacity: 0.65;
+            opacity: 0.9;
             cursor: pointer;
             color: #ffffff;
             backdrop-filter: blur(2px);
@@ -94,7 +94,7 @@
 
         .streamer-card:not(.online):hover {
             background: rgba(58, 64, 101, 0.9);
-            opacity: 0.8;
+            opacity: 0.95;
             transform: scale(1.01);
         }
 
@@ -212,8 +212,7 @@
 
     <script>
         (function() {
-            // --- Часть 1: Twitch стримеры с обновлением раз в 10 секунд ---
-            // Добавлен третий стример CheD__TV
+            // --- Часть 1: Twitch стримеры (MiStEr_9_Crol удалён) ---
             const STREAMERS = ['homep9', 'mshlosha', 'CheD__TV'];
             const container = document.getElementById('container');
 
@@ -231,21 +230,17 @@
                 }
             }
 
-            function createCard(user) {
+            function createCard(user, loginFallback) {
                 const isOnline = user && user.stream && typeof user.stream === 'object';
-                const login = user?.login || 'unknown';
-                const displayName = user?.displayName || login;
+                const displayName = user?.displayName || loginFallback;
+                const login = user?.login || loginFallback;
+                
                 let avatarUrl = user?.logo;
                 if (!avatarUrl || avatarUrl === '') {
                     avatarUrl = `https://placekitten.com/110/110?image=${Math.floor(Math.random() * 10)}`;
                 }
 
-                let viewersText = '-';
-                if (isOnline && user.stream.viewers !== undefined) {
-                    viewersText = `👁️ ${user.stream.viewers}`;
-                } else if (isOnline) {
-                    viewersText = '🔴 ONLINE';
-                }
+                let viewersText = isOnline ? '🔴 Стримит' : '⚫ Не в сети';
 
                 const card = document.createElement('a');
                 card.href = `https://www.twitch.tv/${login}`;
@@ -276,42 +271,31 @@
                 return card;
             }
 
-            function createErrorCard(login) {
-                const card = document.createElement('a');
-                card.href = `https://www.twitch.tv/${login}`;
-                card.target = '_blank';
-                card.className = 'streamer-card error-card';
-                card.style.opacity = '0.5';
-
-                const avatar = document.createElement('img');
-                avatar.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 100 100\'%3E%3Ccircle fill=\'%23555\' cx=\'50\' cy=\'50\' r=\'50\'/%3E%3Ctext fill=\'%23aaa\' x=\'50\' y=\'67\' font-size=\'40\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3E⚠️%3C/text%3E%3C/svg%3E';
-                avatar.alt = login;
-                avatar.className = 'avatar';
-
-                const usernameDiv = document.createElement('div');
-                usernameDiv.className = 'username';
-                usernameDiv.textContent = login;
-
-                const viewersDiv = document.createElement('div');
-                viewersDiv.className = 'viewers';
-                viewersDiv.textContent = '?';
-
-                card.appendChild(avatar);
-                card.appendChild(usernameDiv);
-                card.appendChild(viewersDiv);
-
-                return card;
-            }
-
             function renderCards(usersArray) {
-                container.innerHTML = '';
+                const cardElements = [];
+                
                 usersArray.forEach((user, idx) => {
+                    const login = STREAMERS[idx];
                     if (user && typeof user === 'object' && user.login) {
-                        container.appendChild(createCard(user));
+                        cardElements.push(createCard(user, login));
                     } else {
-                        container.appendChild(createErrorCard(STREAMERS[idx]));
+                        const errCard = createCard(null, login);
+                        errCard.classList.add('error-card');
+                        cardElements.push(errCard);
                     }
                 });
+
+                // Сортировка: сначала онлайн
+                cardElements.sort((a, b) => {
+                    const aOnline = a.classList.contains('online');
+                    const bOnline = b.classList.contains('online');
+                    if (aOnline && !bOnline) return -1;
+                    if (!aOnline && bOnline) return 1;
+                    return 0;
+                });
+
+                container.innerHTML = '';
+                cardElements.forEach(card => container.appendChild(card));
             }
 
             async function updateAllStreamers() {
@@ -326,9 +310,9 @@
             }
 
             updateAllStreamers();
-            setInterval(updateAllStreamers, 10000);
+            setInterval(updateAllStreamers, 5000);
 
-            // --- Часть 2: Canvas с падающими морковками, мишками и черепками ---
+            // --- Часть 2: Canvas с падающими морковками, черепками и инопланетянами 👾 ---
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -343,9 +327,9 @@
             resizeCanvas();
 
             const particles = [];
-            // Добавлен новый тип 'skull' с эмодзи 💀
-            const TYPES = ['carrot', 'bear', 'skull'];
-            const EMOJI = { carrot: '🥕', bear: '🧸', skull: '💀' };
+            // Заменили 'bear' на 'alien' с эмодзи 👾
+            const TYPES = ['carrot', 'alien', 'skull'];
+            const EMOJI = { carrot: '🥕', alien: '👾', skull: '💀' };
 
             function createParticle() {
                 const size = 40 + Math.random() * 20;
