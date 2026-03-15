@@ -212,7 +212,7 @@
 
     <script>
         (function() {
-            // --- Часть 1: Twitch стримеры (MiStEr_9_Crol удалён) ---
+            
             const STREAMERS = ['homep9', 'mshlosha', 'CheD__TV'];
             const container = document.getElementById('container');
 
@@ -285,7 +285,6 @@
                     }
                 });
 
-                // Сортировка: сначала онлайн
                 cardElements.sort((a, b) => {
                     const aOnline = a.classList.contains('online');
                     const bOnline = b.classList.contains('online');
@@ -311,8 +310,7 @@
 
             updateAllStreamers();
             setInterval(updateAllStreamers, 5000);
-
-            // --- Часть 2: Canvas с падающими морковками, черепками и инопланетянами 👾 ---
+            
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
 
@@ -327,7 +325,6 @@
             resizeCanvas();
 
             const particles = [];
-            // Заменили 'bear' на 'alien' с эмодзи 👾
             const TYPES = ['carrot', 'alien', 'skull'];
             const EMOJI = { carrot: '🥕', alien: '👾', skull: '💀' };
 
