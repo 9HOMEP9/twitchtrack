@@ -325,7 +325,7 @@
             }
 
             updateAllStreamers();
-            setInterval(updateAllStreamers, 5000);
+            setInterval(updateAllStreamers, 1000);
 
             const canvas = document.getElementById('canvas');
             const ctx = canvas.getContext('2d');
@@ -379,7 +379,7 @@
             }
 
             setInterval(() => {
-                if (particles.length < 80) {
+                if (particles.length < 240) {
                     particles.push(createParticle());
                 }
             }, 150);
