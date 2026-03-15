@@ -229,27 +229,15 @@
                 }
             }
 
-            function createCard(user, loginFallback) {
-                const isOnline = user && user.stream && typeof user.stream === 'object';
-                const displayName = user?.displayName || loginFallback;
-                const login = user?.login || loginFallback;
-                
-                let avatarUrl = user?.logo;
-                if (!avatarUrl || avatarUrl === '') {
-                    avatarUrl = `https://placekitten.com/110/110?image=${Math.floor(Math.random() * 10)}`;
-                }
-
-                let viewersText = isOnline ? '🔴 Стримит' : '⚫ Не в сети';
-
+            function createCardElement(login) {
                 const card = document.createElement('a');
                 card.href = `https://www.twitch.tv/${login}`;
                 card.target = '_blank';
-                card.className = `streamer-card ${isOnline ? 'online' : ''}`;
+                card.className = 'streamer-card';
 
                 const avatar = document.createElement('img');
-                avatar.src = avatarUrl;
-                avatar.alt = displayName;
                 avatar.className = 'avatar';
+                avatar.alt = login;
                 avatar.loading = 'lazy';
                 avatar.onerror = function() {
                     this.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 100 100\'%3E%3Ccircle fill=\'%23333\' cx=\'50\' cy=\'50\' r=\'50\'/%3E%3Ctext fill=\'%23aaa\' x=\'50\' y=\'67\' font-size=\'40\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3E%3F%3C/text%3E%3C/svg%3E';
@@ -257,11 +245,11 @@
 
                 const usernameDiv = document.createElement('div');
                 usernameDiv.className = 'username';
-                usernameDiv.textContent = displayName;
+                usernameDiv.textContent = login;
 
                 const viewersDiv = document.createElement('div');
                 viewersDiv.className = 'viewers';
-                viewersDiv.textContent = viewersText;
+                viewersDiv.textContent = '⚫ Не в сети';
 
                 card.appendChild(avatar);
                 card.appendChild(usernameDiv);
@@ -270,40 +258,69 @@
                 return card;
             }
 
-            function renderCards(usersArray) {
-                const cardElements = [];
+            const cardElements = STREAMERS.map(login => createCardElement(login));
+            container.innerHTML = '';
+            cardElements.forEach(card => container.appendChild(card));
+
+            function updateCardFromUser(card, user, login) {
+                const isOnline = user && user.stream && typeof user.stream === 'object';
+                const displayName = user?.displayName || login;
                 
-                usersArray.forEach((user, idx) => {
-                    const login = STREAMERS[idx];
-                    if (user && typeof user === 'object' && user.login) {
-                        cardElements.push(createCard(user, login));
-                    } else {
-                        const errCard = createCard(null, login);
-                        errCard.classList.add('error-card');
-                        cardElements.push(errCard);
-                    }
-                });
+                let avatarUrl = user?.logo;
+                if (!avatarUrl || avatarUrl === '') {
+                    avatarUrl = `https://placekitten.com/110/110?image=${Math.floor(Math.random() * 10)}`;
+                }
 
-                cardElements.sort((a, b) => {
-                    const aOnline = a.classList.contains('online');
-                    const bOnline = b.classList.contains('online');
-                    if (aOnline && !bOnline) return -1;
-                    if (!aOnline && bOnline) return 1;
-                    return 0;
-                });
+                const viewersText = isOnline ? '🔴 Стримит' : '⚫ Не в сети';
 
-                container.innerHTML = '';
-                cardElements.forEach(card => container.appendChild(card));
+                const avatarImg = card.querySelector('.avatar');
+                const usernameDiv = card.querySelector('.username');
+                const viewersDiv = card.querySelector('.viewers');
+
+                avatarImg.src = avatarUrl;
+                usernameDiv.textContent = displayName;
+                viewersDiv.textContent = viewersText;
+                card.classList.toggle('online', isOnline);
+                card.classList.remove('error-card');
+            }
+
+            function setErrorCard(card, login) {
+                const avatarImg = card.querySelector('.avatar');
+                const usernameDiv = card.querySelector('.username');
+                const viewersDiv = card.querySelector('.viewers');
+
+                avatarImg.src = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\' viewBox=\'0 0 100 100\'%3E%3Ccircle fill=\'%23555\' cx=\'50\' cy=\'50\' r=\'50\'/%3E%3Ctext fill=\'%23aaa\' x=\'50\' y=\'67\' font-size=\'40\' text-anchor=\'middle\' dominant-baseline=\'middle\'%3E⚠️%3C/text%3E%3C/svg%3E';
+                usernameDiv.textContent = login;
+                viewersDiv.textContent = '?';
+                card.classList.remove('online');
+                card.classList.add('error-card');
             }
 
             async function updateAllStreamers() {
                 try {
                     const promises = STREAMERS.map(login => fetchUserData(login));
                     const results = await Promise.all(promises);
-                    renderCards(results);
+                    
+                    results.forEach((user, idx) => {
+                        const card = cardElements[idx];
+                        if (user && typeof user === 'object' && user.login) {
+                            updateCardFromUser(card, user, STREAMERS[idx]);
+                        } else {
+                            setErrorCard(card, STREAMERS[idx]);
+                        }
+                    });
+
+                    const sorted = [...cardElements].sort((a, b) => {
+                        const aOnline = a.classList.contains('online');
+                        const bOnline = b.classList.contains('online');
+                        if (aOnline && !bOnline) return -1;
+                        if (!aOnline && bOnline) return 1;
+                        return 0;
+                    });
+                    sorted.forEach(card => container.appendChild(card));
                 } catch (globalError) {
                     console.error('Глобальная ошибка обновления:', globalError);
-                    renderCards([null, null, null]);
+                    cardElements.forEach((card, idx) => setErrorCard(card, STREAMERS[idx]));
                 }
             }
 
@@ -323,7 +340,6 @@
             window.addEventListener('resize', resizeCanvas);
             resizeCanvas();
 
-            // Загрузка PNG изображений
             const images = {
                 carrot: new Image(),
                 alien: new Image(),
@@ -336,26 +352,21 @@
             let imagesLoaded = 0;
             function imageLoaded() {
                 imagesLoaded++;
-                if (imagesLoaded === 3) {
-                    // Все изображения загружены, можно начинать анимацию
-                    // Анимация уже запущена, но теперь изображения будут рисоваться
-                }
             }
             images.carrot.onload = imageLoaded;
             images.alien.onload = imageLoaded;
             images.skull.onload = imageLoaded;
-            // Если изображения не загрузятся, onerror можно не обрабатывать, просто ничего не нарисуется
 
             const particles = [];
             const TYPES = ['carrot', 'alien', 'skull'];
 
             function createParticle() {
-                const size = 40; // фиксированный размер, можно регулировать
+                const size = 40;
                 return {
                     x: Math.random() * width,
                     y: -size - Math.random() * 50,
                     vx: (Math.random() - 0.5) * 0.5,
-                    vy: Math.random() * 0.5 + 0.3,
+                    vy: Math.random() * 0.75 + 0.45,
                     rotation: Math.random() * Math.PI * 2,
                     rotSpeed: (Math.random() - 0.5) * 0.02,
                     type: TYPES[Math.floor(Math.random() * TYPES.length)],
@@ -409,7 +420,7 @@
                 }
             }
 
-            const gravity = 0.02;
+            const gravity = 0.03;
             const maxSpeed = 4;
 
             function updateParticles() {
@@ -476,7 +487,6 @@
                     ctx.restore();
                 }
 
-                // Рисуем частицы, если изображения загружены
                 if (imagesLoaded === 3) {
                     for (let p of particles) {
                         const img = images[p.type];
