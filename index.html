@@ -212,7 +212,7 @@
 
     <script>
         (function() {
-            const STREAMERS = ['homep9', 'mshlosha', 'CheD__TV'];
+            const STREAMERS = ['homep9', 'mshlosha', 'CheD__TV', 'nastyushhkkins'];
             const container = document.getElementById('container');
 
             async function fetchUserData(login) {
@@ -343,11 +343,13 @@
             const images = {
                 carrot: new Image(),
                 alien: new Image(),
-                skull: new Image()
+                skull: new Image(),
+                heartstar: new Image()
             };
             images.carrot.src = 'carrot.png';
             images.alien.src = 'alien.png';
             images.skull.src = 'skull.png';
+            images.heartstar.src = 'heartstar.png';
 
             let imagesLoaded = 0;
             function imageLoaded() {
@@ -356,9 +358,10 @@
             images.carrot.onload = imageLoaded;
             images.alien.onload = imageLoaded;
             images.skull.onload = imageLoaded;
+            images.heartstar.onload = imageLoaded;
 
             const particles = [];
-            const TYPES = ['carrot', 'alien', 'skull'];
+            const TYPES = ['carrot', 'alien', 'skull', 'heartstar'];
 
             function createParticle() {
                 const size = 40;
@@ -487,7 +490,7 @@
                     ctx.restore();
                 }
 
-                if (imagesLoaded === 3) {
+                if (imagesLoaded === 4) {
                     for (let p of particles) {
                         const img = images[p.type];
                         if (img) {
